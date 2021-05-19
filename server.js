@@ -6,6 +6,7 @@ const http = require("http");
 const cors = require("cors");
 const sha512 = require("js-sha512").sha512
 const cookieParser = require("cookie-parser");
+const {body, validationResult} = require('express-validator');
 
 const app = express();
 app.use(express.json());
@@ -16,9 +17,8 @@ const router = express.Router();
 app.use('/api', router);
 
 
-router.post("/users/register", async (req, resp) => {
+router.post("/users/register", body("username").isString(), body("password").isString(), async (req, resp) => {
     const username = req.body.username
-    if (typeof (username) != "string" || username === "") return resp.sendStatus(400);
     if (!await user.checkUsername(username)) return resp.sendStatus(406);
 
     await user.registerUser(username, sha512(req.body.password))
@@ -33,9 +33,34 @@ router.post("/users/login", async (req, resp) => {
         .sendStatus(200)
 })
 
-router.get("/test", auth.verifyJWT, (req, resp) => {
-    resp.sendStatus(203);
+router.get("/authenticated", auth.verifyJWT, (req, resp) => {
+    resp.sendStatus(200);
 });
+
+router.get("/books", auth.verifyJWT, async (req, resp) => {
+    resp.json(await repo.getBooks(req.id));
+})
+
+router.post("/books", auth.verifyJWT, body("name").isString(), async (req, resp) => {
+    await repo.addBook(req.body.name, req.id)
+    resp.sendStatus(201);
+})
+
+router.get("/entries/:bookId", auth.verifyJWT, async (req, resp) => {
+    resp.json(await repo.getEntries(req.params.bookId));
+})
+
+
+router.post("/entries", auth.verifyJWT,
+    body("bid").isNumeric(),
+    body("text").isString(),
+    body("when").isString(),
+    body("where").isString(),
+    async (req, resp) => {
+        await repo.addEntry(req.body.bid, req.body.text, req.body.when, req.body.where)
+        resp.sendStatus(201);
+    }
+)
 const server = http.createServer(app);
 const port = 5000
 server.listen(port);
