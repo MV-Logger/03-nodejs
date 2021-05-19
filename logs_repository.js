@@ -1,12 +1,4 @@
-const con = require("./connection.js").connection;
-
-
-function query(sql, ...args) {
-    return con.query(sql, ...args, (err, result) => {
-        if (err) throw err;
-        return result;
-    });
-}
+const query = require("./connection.js").query
 
 function getBooks(user) {
     return query(`select *
