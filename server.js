@@ -18,6 +18,10 @@ app.use('/api', router);
 
 
 router.post("/users/register", body("username").isString(), body("password").isString(), async (req, resp) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return resp.status(400).json({ errors: errors.array() });
+    }
     const username = req.body.username
     if (!await user.checkUsername(username)) return resp.sendStatus(406);
 
@@ -42,6 +46,10 @@ router.get("/books", auth.verifyJWT, async (req, resp) => {
 })
 
 router.post("/books", auth.verifyJWT, body("name").isString(), async (req, resp) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return resp.status(400).json({ errors: errors.array() });
+    }
     await repo.addBook(req.body.name, req.id)
     resp.sendStatus(201);
 })
@@ -57,6 +65,10 @@ router.post("/entries", auth.verifyJWT,
     body("when").isString(),
     body("where").isString(),
     async (req, resp) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return resp.status(400).json({ errors: errors.array() });
+        }
         await repo.addEntry(req.body.bid, req.body.text, req.body.when, req.body.where)
         resp.sendStatus(201);
     }
