@@ -13,12 +13,12 @@ async function login(username, pass) {
     return result.length === 1 ? result[0].id : false;
 }
 
-async function checkUsername(username) {
-    return (await query("select * from users where username = ?", username)).length === 0
+async function existUsername(username) {
+    return (await query("select * from users where username = ?", username)).length === 1
 }
 
 module.exports = {
     registerUser,
-    checkUsername,
+    existUsername,
     login,
 }

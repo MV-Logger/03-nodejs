@@ -6,7 +6,8 @@ const http = require("http");
 const cors = require("cors");
 const sha512 = require("js-sha512").sha512
 const cookieParser = require("cookie-parser");
-const {body, validationResult} = require('express-validator');
+const {body, param} = require('express-validator');
+const {errorHandler, validateRequest} = require('./error.js');
 
 const app = express();
 app.use(express.json());
@@ -17,19 +18,19 @@ const router = express.Router();
 app.use('/api', router);
 
 
-router.post("/users/register", body("username").isString(), body("password").isString(), async (req, resp) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return resp.status(400).json({ errors: errors.array() });
+router.post("/auth/register",
+    body("username").isString().custom(async v => {
+        if (await user.existUsername(v)) return Promise.reject(); // return rejection so validation fails
+    }),
+    body("password").isString().isLength({min: 5}),
+    validateRequest,
+    async (req, resp) => {
+        await user.registerUser(req.body.username, sha512(req.body.password))
+        resp.sendStatus(201);
     }
-    const username = req.body.username
-    if (!await user.checkUsername(username)) return resp.sendStatus(406);
+)
 
-    await user.registerUser(username, sha512(req.body.password))
-    resp.sendStatus(201);
-})
-
-router.post("/users/login", async (req, resp) => {
+router.post("/auth/login", async (req, resp) => {
     const id = await user.login(req.body.username, sha512(req.body.password));
     if (typeof id != "number") return resp.sendStatus(404);
     resp
@@ -37,7 +38,7 @@ router.post("/users/login", async (req, resp) => {
         .sendStatus(200)
 })
 
-router.get("/authenticated", auth.verifyJWT, (req, resp) => {
+router.get("/auth/authenticated", auth.verifyJWT, (req, resp) => {
     resp.sendStatus(200);
 });
 
@@ -45,33 +46,43 @@ router.get("/books", auth.verifyJWT, async (req, resp) => {
     resp.json(await repo.getBooks(req.id));
 })
 
-router.post("/books", auth.verifyJWT, body("name").isString(), async (req, resp) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return resp.status(400).json({ errors: errors.array() });
-    }
-    await repo.addBook(req.body.name, req.id)
-    resp.sendStatus(201);
-})
+router.post("/books", auth.verifyJWT,
+    body("name").isString(),
+    validateRequest,
+    async (req, resp) => {
 
-router.get("/books/:bookId/entries", auth.verifyJWT, async (req, resp) => {
-    resp.json(await repo.getEntries(req.params.bookId));
-})
+        await repo.addBook(req.body.name, req.id)
+        resp.sendStatus(201);
+    })
+
+router.get("/books/:bookId/entries", auth.verifyJWT,
+    param("bookId").isNumeric().exists().toInt().custom(async v => {
+        if ((await repo.getBook(v)).length === 0) return Promise.reject();
+    }),
+    validateRequest,
+    async (req, resp) => {
+        resp.json(await repo.getEntries(req.params.bookId));
+    }
+)
 
 
 router.post("/books/:bookId/entries", auth.verifyJWT,
-    body("text").isString(),
-    body("when").isString(),
-    body("where").isString(),
+    param("bookId").isNumeric().exists().toInt().custom(async v => {
+        if ((await repo.getBook(v)).length === 0) return Promise.reject();
+    }),
+    body("text").exists(),
+    body("when").exists(),
+    body("where").exists(),
+    validateRequest,
     async (req, resp) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return resp.status(400).json({ errors: errors.array() });
-        }
         await repo.addEntry(req.params.bookId, req.body.text, req.body.when, req.body.where)
         resp.sendStatus(201);
     }
 )
+
+app.use(errorHandler)
+
+
 const server = http.createServer(app);
 const port = 5000
 server.listen(port);
