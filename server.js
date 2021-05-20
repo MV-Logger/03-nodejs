@@ -33,9 +33,10 @@ router.post("/auth/register",
 router.post("/auth/login", async (req, resp) => {
     const id = await user.login(req.body.username, sha512(req.body.password));
     if (typeof id != "number") return resp.sendStatus(404);
+    const token = auth.generateAccessToken(id)
     resp
-        .cookie("access_token", auth.generateAccessToken(id), {httpOnly: true})
-        .sendStatus(200)
+        .cookie("access_token", token, {httpOnly: true}) // supports both httpOnly cookie and bearer token
+        .json({token: token})
 })
 
 router.get("/auth/authenticated", auth.verifyJWT, (req, resp) => {
