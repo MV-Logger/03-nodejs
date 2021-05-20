@@ -54,13 +54,12 @@ router.post("/books", auth.verifyJWT, body("name").isString(), async (req, resp)
     resp.sendStatus(201);
 })
 
-router.get("/entries/:bookId", auth.verifyJWT, async (req, resp) => {
+router.get("/books/:bookId/entries", auth.verifyJWT, async (req, resp) => {
     resp.json(await repo.getEntries(req.params.bookId));
 })
 
 
-router.post("/entries", auth.verifyJWT,
-    body("bid").isNumeric(),
+router.post("/books/:bookId/entries", auth.verifyJWT,
     body("text").isString(),
     body("when").isString(),
     body("where").isString(),
@@ -69,7 +68,7 @@ router.post("/entries", auth.verifyJWT,
         if (!errors.isEmpty()) {
             return resp.status(400).json({ errors: errors.array() });
         }
-        await repo.addEntry(req.body.bid, req.body.text, req.body.when, req.body.where)
+        await repo.addEntry(req.params.bookId, req.body.text, req.body.when, req.body.where)
         resp.sendStatus(201);
     }
 )
