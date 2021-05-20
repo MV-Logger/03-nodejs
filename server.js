@@ -7,7 +7,7 @@ const cors = require("cors");
 const sha512 = require("js-sha512").sha512
 const cookieParser = require("cookie-parser");
 const {body, param} = require('express-validator');
-const {errorHandler, validateRequest} = require('./error.js');
+const {errorHandler, validateRequest, NotFoundError} = require('./error.js');
 
 const app = express();
 app.use(express.json());
@@ -24,60 +24,99 @@ router.post("/auth/register",
     }),
     body("password").isString().isLength({min: 5}),
     validateRequest,
-    async (req, resp) => {
+    async (req, res) => {
         await user.registerUser(req.body.username, sha512(req.body.password))
-        resp.sendStatus(201);
+        res.sendStatus(201);
     }
 )
 
-router.post("/auth/login", async (req, resp) => {
-    const id = await user.login(req.body.username, sha512(req.body.password));
-    if (typeof id != "number") return resp.sendStatus(404);
-    const token = auth.generateAccessToken(id)
-    resp
-        .cookie("access_token", token, {httpOnly: true}) // supports both httpOnly cookie and bearer token
-        .json({token: token})
-})
+router.post("/auth/login",
+    body("username").isString(),
+    body("password").isString(),
+    validateRequest,
+    async (req, res) => {
+        const id = await user.login(req.body.username, sha512(req.body.password));
+        if (typeof id != "number") return res.sendStatus(403);
+        const token = auth.generateAccessToken(id)
+        res
+            .cookie("access_token", token, {httpOnly: true}) // supports both httpOnly cookie and bearer token
+            .json({access_token: token})
+    }
+)
 
-router.get("/auth/authenticated", auth.verifyJWT, (req, resp) => {
-    resp.sendStatus(200);
+router.get("/auth/authenticated", auth.verifyJWT, (req, res) => {
+    res.sendStatus(200);
 });
 
-router.get("/books", auth.verifyJWT, async (req, resp) => {
-    resp.json(await repo.getBooks(req.id));
+router.get("/books", auth.verifyJWT, async (req, res) => {
+    res.json(await repo.getBooks(req.id));
 })
 
 router.post("/books", auth.verifyJWT,
-    body("name").isString(),
+    body("name").isString().isLength({max: 100}),
     validateRequest,
-    async (req, resp) => {
+    async (req, res) => {
 
-        await repo.addBook(req.body.name, req.id)
-        resp.sendStatus(201);
-    })
+        await repo.addBook(req.body.name)
+        res.sendStatus(201);
+    }
+)
+
+router.get("/books/:bookId", auth.verifyJWT,
+    param("bookId").isNumeric().exists().toInt().custom(async v => {
+        if ((await repo.getBook(v)).length === 0) throw new NotFoundError;
+    }),
+    validateRequest,
+    async (req, res) => {
+        res.json(await repo.getBook(req.params.bookId));
+    }
+)
+
+router.delete("/books/:bookId", auth.verifyJWT,
+    param("bookId").isNumeric().exists().toInt().custom(async v => {
+        if ((await repo.getBook(v)).length === 0) throw new NotFoundError
+    }),
+    validateRequest,
+    async (req, res) => {
+        await repo.deleteBook(req.params.bookId)
+        res.sendStatus(200)
+    }
+)
+
+router.put("/books/:bookId", auth.verifyJWT,
+    param("bookId").isNumeric().exists().toInt().custom(async v => {
+        if ((await repo.getBook(v)).length === 0) throw new NotFoundError;
+    }),
+    body("name").isString().isLength({max: 100}),
+    validateRequest,
+    async (req, res) => {
+        await repo.updateBook(req.params.bookId, req.body.name)
+        res.sendStatus(200)
+    }
+)
 
 router.get("/books/:bookId/entries", auth.verifyJWT,
     param("bookId").isNumeric().exists().toInt().custom(async v => {
-        if ((await repo.getBook(v)).length === 0) return Promise.reject();
+        if ((await repo.getBook(v)).length === 0) throw new NotFoundError;
     }),
     validateRequest,
-    async (req, resp) => {
-        resp.json(await repo.getEntries(req.params.bookId));
+    async (req, res) => {
+        res.json(await repo.getEntries(req.params.bookId));
     }
 )
 
 
 router.post("/books/:bookId/entries", auth.verifyJWT,
     param("bookId").isNumeric().exists().toInt().custom(async v => {
-        if ((await repo.getBook(v)).length === 0) return Promise.reject();
+        if ((await repo.getBook(v)).length === 0) throw new NotFoundError;
     }),
     body("text").exists(),
     body("when").exists(),
     body("where").exists(),
     validateRequest,
-    async (req, resp) => {
+    async (req, res) => {
         await repo.addEntry(req.params.bookId, req.body.text, req.body.when, req.body.where)
-        resp.sendStatus(201);
+        res.sendStatus(201);
     }
 )
 

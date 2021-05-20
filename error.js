@@ -8,8 +8,13 @@ class AppError extends Error {
     }
 }
 
+class NotFoundError extends Error {
+}
+
 function errorHandler(err, req, res, next) {
-    if (err instanceof AppError) { // validation failed
+    if (err instanceof NotFoundError) {
+        res.sendStatus(404)
+    } else if (err instanceof AppError) { // validation failed
         res.status(err.statusCode).json({errors: err.errors})
     } else {
         console.log(err);
@@ -27,6 +32,7 @@ function validateRequest(req, resp, next) {
 }
 
 module.exports = {
+    NotFoundError,
     AppError,
     errorHandler,
     validateRequest
