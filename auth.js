@@ -3,7 +3,7 @@ const dotenv = require("dotenv")
 dotenv.config();
 
 function generateAccessToken(id) {
-    return jwt.sign({id: id}, process.env.TOKEN_SECRET, {expiresIn: '3d'});
+    return jwt.sign({sub: id}, process.env.TOKEN_SECRET, {expiresIn: '3d'});
 }
 
 function verifyJWT(req, res, next) { // supports authentication through httpOnly cookie or token bearer
@@ -14,7 +14,8 @@ function verifyJWT(req, res, next) { // supports authentication through httpOnly
     if (token) {
         jwt.verify(token, process.env.TOKEN_SECRET, (err, payload) => {
             if (err) return res.sendStatus(403);
-            req.id = payload.id;
+            console.log(payload);
+            req.id = payload.sub;
             next();
         })
     } else {
