@@ -4,7 +4,7 @@ const user = require("./user_repository.js");
 const auth = require("./auth.js");
 const http = require("http");
 const cors = require("cors");
-const sha512 = require("js-sha512").sha512
+const bcrypt = require("bcrypt")
 const cookieParser = require("cookie-parser");
 const {body, param} = require('express-validator');
 const {errorHandler, validateRequest, NotFoundError} = require('./error.js');
@@ -25,7 +25,7 @@ router.post("/auth/register",
     body("password").isString().isLength({min: 5}),
     validateRequest,
     async (req, res) => {
-        await user.registerUser(req.body.username, sha512(req.body.password))
+        await user.registerUser(req.body.username, await bcrypt.hash(req.body.password))
         res.sendStatus(201);
     }
 )
@@ -35,7 +35,7 @@ router.post("/auth/login",
     body("password").isString(),
     validateRequest,
     async (req, res) => {
-        const id = await user.login(req.body.username, sha512(req.body.password));
+        const id = await user.login(req.body.username, await bcrypt.hash(req.body.password));
         if (typeof id != "number") return res.sendStatus(403);
         const token = auth.generateAccessToken(id)
         res
@@ -57,7 +57,7 @@ router.post("/books", auth.verifyJWT,
     validateRequest,
     async (req, res) => {
 
-        await repo.addBook(req.body.name)
+        await repo.addBook(req.body.name, req.id)
         res.sendStatus(201);
     }
 )
