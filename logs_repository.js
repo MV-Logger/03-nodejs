@@ -1,7 +1,7 @@
 const query = require("./connection.js").query
 
 async function getBooks(user) {
-    return query(`select *
+    return await query(`select *
                   from books
                   where user_id = ?`, user);
 }

@@ -5,12 +5,11 @@ async function registerUser(username, pass) {
                         set ?`, {username: username, password: pass});
 }
 
-async function login(username, pass) {
-    const result = await query(`select id
+async function login(username) {
+    return await query(`select id, password
                                 from users
                                 where LOWER(username) = LOWER(?)
-                                  and password = ?`, username, pass);
-    return result.length === 1 ? result[0].id : false;
+                                `, username);
 }
 
 async function existUsername(username) {

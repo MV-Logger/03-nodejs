@@ -4,12 +4,15 @@ const user = require("./user_repository.js");
 const auth = require("./auth.js");
 const http = require("http");
 const cors = require("cors");
-const bcrypt = require("bcrypt")
+const bcrypt = require("bcryptjs") // using bcryptjs instead of bcrypt is bc laravel uses $y$ and bcrypt doesnt support it
 const cookieParser = require("cookie-parser");
 const {body, param} = require('express-validator');
 const {errorHandler, validateRequest, NotFoundError} = require('./error.js');
 
+const saltRounds = 10;
 const app = express();
+
+// adding middleware
 app.use(express.json());
 app.use(cors());
 app.use(express.urlencoded({extended: true}));
@@ -18,6 +21,7 @@ const router = express.Router();
 app.use('/api', router);
 
 
+// adding routes + validation
 router.post("/auth/register",
     body("username").isString().custom(async v => {
         if (await user.existUsername(v)) return Promise.reject(); // return rejection so validation fails
@@ -25,7 +29,7 @@ router.post("/auth/register",
     body("password").isString().isLength({min: 5}),
     validateRequest,
     async (req, res) => {
-        await user.registerUser(req.body.username, await bcrypt.hash(req.body.password))
+        await user.registerUser(req.body.username,  await bcrypt.hash(req.body.password, saltRounds))
         res.sendStatus(201);
     }
 )
@@ -35,9 +39,11 @@ router.post("/auth/login",
     body("password").isString(),
     validateRequest,
     async (req, res) => {
-        const id = await user.login(req.body.username, await bcrypt.hash(req.body.password));
-        if (typeof id != "number") return res.sendStatus(403);
-        const token = auth.generateAccessToken(id)
+        const result = await user.login(req.body.username);
+        if (result.length === 0 || !(await bcrypt.compare(req.body.password, result[0].password)))
+            return res.sendStatus(403);
+
+        const token = auth.generateAccessToken(result[0].id)
         res
             .cookie("access_token", token, {httpOnly: true}) // supports both httpOnly cookie and bearer token
             .json({access_token: token})
@@ -122,7 +128,7 @@ router.post("/books/:bookId/entries", auth.verifyJWT,
 
 app.use(errorHandler)
 
-
+//Setting up the server
 const server = http.createServer(app);
 const port = 5000
 server.listen(port);

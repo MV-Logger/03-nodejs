@@ -23,6 +23,7 @@ function errorHandler(err, req, res, next) {
     }
 }
 
+// custom middleware, checks if validation succeeded if not errorHandler will catch it
 function validateRequest(req, resp, next) {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
