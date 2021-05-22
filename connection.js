@@ -1,8 +1,9 @@
-const mysql = require("mysql")
+const pg = require('pg')
 const dotenv = require("dotenv")
 dotenv.config();
+const uri = process.env.DB_URI;
 
-const connection = mysql.createConnection(process.env.DB_URI);
+const connection = pg.Client({uri});
 
 connection.connect((err) => {
     if (err) throw err;
