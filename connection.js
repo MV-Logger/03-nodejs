@@ -3,7 +3,7 @@ const dotenv = require("dotenv")
 dotenv.config();
 const uri = process.env.DB_URI;
 
-const connection = pg.Client({uri});
+const connection = new pg.Client({uri});
 
 connection.connect((err) => {
     if (err) throw err;
