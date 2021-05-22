@@ -1,4 +1,5 @@
 node_modules
+config2.json
 config.json
 .env
 .idea

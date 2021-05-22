@@ -13,13 +13,13 @@ const saltRounds = 10;
 const app = express();
 
 // adding middleware
-app.use(express.json());
-app.use(cors());
-app.use(express.urlencoded({extended: true}));
-app.use(cookieParser());
+app.use(express.json()); // parse json
+app.use(cors()); //enable cors
+app.use(express.urlencoded({extended: true})); // allow to parse forms
+app.use(cookieParser()); // parses cookies
 const router = express.Router();
 app.use('/api', router);
-
+app.use(errorHandler) // custom middleware that handles my custom errors
 
 // adding routes + validation
 router.post("/auth/register",
@@ -125,8 +125,6 @@ router.post("/books/:bookId/entries", auth.verifyJWT,
         res.sendStatus(201);
     }
 )
-
-app.use(errorHandler)
 
 //Setting up the server
 const server = http.createServer(app);
