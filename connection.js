@@ -1,9 +1,12 @@
-const pg = require('pg')
+const {Client} = require('pg')
 const dotenv = require("dotenv")
 dotenv.config();
 const uri = process.env.DB_URI;
 
-const connection = new pg.Client({uri});
+
+console.log(uri)
+
+const connection = new Client({uri,});
 
 connection.connect((err) => {
     if (err) throw err;
