@@ -1,6 +1,8 @@
 const mysql = require("mysql")
-const config = require("./config.json")
-const connection = mysql.createConnection(config);
+const dotenv = require("dotenv")
+dotenv.config();
+
+const connection = mysql.createConnection(process.env.DB_URI);
 
 connection.connect((err) => {
     if (err) throw err;
