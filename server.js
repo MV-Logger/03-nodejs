@@ -128,6 +128,6 @@ router.post("/books/:bookId/entries", auth.verifyJWT,
 
 //Setting up the server
 const server = http.createServer(app);
-const port = 5000
+const port = process.env.PORT || 5000;
 server.listen(port);
 console.log(`server online on port: ${port}`)
