@@ -20,7 +20,7 @@ async function query(sql, ...args) {
             if (err) rej(err);
             res(result);
         })
-    })
+    }).then(result => result.rows)
 }
 
 
