@@ -1,12 +1,9 @@
 const {Client} = require('pg')
 const dotenv = require("dotenv")
 dotenv.config();
-const uri = process.env.DATABASE_URL;
 
-
-console.log(uri)
-
-const connection = new Client({uri,
+const connection = new Client({
+    connectionString: process.env.DATABASE_URL,
     ssl: {
         rejectUnauthorized: false
     }
