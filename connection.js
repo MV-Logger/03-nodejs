@@ -6,7 +6,11 @@ const uri = process.env.DATABASE_URL;
 
 console.log(uri)
 
-const connection = new Client({uri,});
+const connection = new Client({uri,
+    ssl: {
+        rejectUnauthorized: false
+    }
+});
 
 connection.connect((err) => {
     if (err) throw err;
